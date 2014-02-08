@@ -110,17 +110,20 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
     exit(EXIT_SUCCESS);
   }
   else if (!strcmp("jobs", argv[0])) {
-    /* Your code here */
+    fprintf(stdout, "%s\n", last_job->commandinfo);
     return true;
   }
   else if (!strcmp("cd", argv[0])) {
     /* Your code here */
+    return true;
   }
   else if (!strcmp("bg", argv[0])) {
     /* Your code here */
+    return true;
   }
   else if (!strcmp("fg", argv[0])) {
     /* Your code here */
+    return true;
   }
   return false;       /* not a builtin command */
 }
@@ -169,16 +172,22 @@ int main()
     /* You need to loop through jobs list since a command line can contain ;*/
     while(current_process!=NULL){
       /* Check for built-in commands */
-      if(!builtin_cmd(j, current_process->argc, current_process->argv))
-        exit(EXIT_FAILURE);
-
       /* If not built-in */
-          /* If job j runs in foreground */
-          /* spawn_job(j,true) */
-          /* else */
-          /* spawn_job(j,false) */
-
+      if(!builtin_cmd(j, current_process->argc, current_process->argv)){
+        /* If job j runs in foreground */
+        // if(!j->bg){
+        // /* spawn_job(j,true) */
+        //   spawn_job(j,true);
+        // }
+        // /* else */
+        // else{
+        //   spawn_job(j,false);
+        // /* spawn_job(j,false) */
+        // }
+        exit(EXIT_FAILURE);
+      }
+      current_process = current_process->next;
     }
 
-    }
+  }
 }
