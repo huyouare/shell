@@ -7,34 +7,35 @@ void spawn_job(job_t *j, bool fg); /* spawn a new job */
 /* Sets the process group id for a given job and process */
 int set_child_pgid(job_t *j, process_t *p)
 {
-    if (j->pgid < 0) /* first child: use its pid for job pgid */
-        j->pgid = p->pid;
-    return(setpgid(p->pid,j->pgid));
+  if (j->pgid < 0) /* first child: use its pid for job pgid */
+    j->pgid = p->pid;
+
+  return(setpgid(p->pid,j->pgid));
 }
 
 /* Creates the context for a new child by setting the pid, pgid and tcsetpgrp */
 void new_child(job_t *j, process_t *p, bool fg)
 {
-         /* establish a new process group, and put the child in
-          * foreground if requested
-          */
+  /* establish a new process group, and put the child in
+  * foreground if requested
+  */
 
-         /* Put the process into the process group and give the process
-          * group the terminal, if appropriate.  This has to be done both by
-          * the dsh and in the individual child processes because of
-          * potential race conditions.  
-          * */
+  /* Put the process into the process group and give the process
+  * group the terminal, if appropriate.  This has to be done both by
+  * the dsh and in the individual child processes because of
+  * potential race conditions.  
+  * */
 
-         p->pid = getpid();
+  p->pid = getpid();
 
-         /* also establish child process group in child to avoid race (if parent has not done it yet). */
-         set_child_pgid(j, p);
+  /* also establish child process group in child to avoid race (if parent has not done it yet). */
+  set_child_pgid(j, p);
 
-         if(fg) // if fg is set
-		seize_tty(j->pgid); // assign the terminal
+  if(fg) // if fg is set
+    seize_tty(j->pgid); // assign the terminal
 
-         /* Set the handling for job control signals back to the default. */
-         signal(SIGTTOU, SIG_DFL);
+  /* Set the handling for job control signals back to the default. */
+  signal(SIGTTOU, SIG_DFL);
 }
 
 /* Spawning a process with job control. fg is true if the 
@@ -50,48 +51,48 @@ void new_child(job_t *j, process_t *p, bool fg)
 void spawn_job(job_t *j, bool fg) 
 {
 
-	pid_t pid;
-	process_t *p;
+  pid_t pid;
+  process_t *p;
 
-	for(p = j->first_process; p; p = p->next) {
+  for(p = j->first_process; p; p = p->next) {
 
-	  /* YOUR CODE HERE? */
-	  /* Builtin commands are already taken care earlier */
-	  
-	  switch (pid = fork()) {
+    /* YOUR CODE HERE? */
+    /* Builtin commands are already taken care earlier */
+    
+    switch (pid = fork()) {
 
-          case -1: /* fork failure */
-            perror("fork");
-            exit(EXIT_FAILURE);
+      case -1: /* fork failure */
+        perror("fork");
+        exit(EXIT_FAILURE);
 
-          case 0: /* child process  */
-            p->pid = getpid();	    
-            new_child(j, p, fg);
+      case 0: /* child process  */
+        p->pid = getpid();      
+        new_child(j, p, fg);
             
-	    /* YOUR CODE HERE?  Child-side code for new process. */
-            perror("New child should have done an exec");
-            exit(EXIT_FAILURE);  /* NOT REACHED */
-            break;    /* NOT REACHED */
+        /* YOUR CODE HERE?  Child-side code for new process. */
+        perror("New child should have done an exec");
+        exit(EXIT_FAILURE);  /* NOT REACHED */
+        break;    /* NOT REACHED */
 
-          default: /* parent */
-            /* establish child process group */
-            p->pid = pid;
-            set_child_pgid(j, p);
+      default: /* parent */
+        /* establish child process group */
+        p->pid = pid;
+        set_child_pgid(j, p);
 
-            /* YOUR CODE HERE?  Parent-side code for new process.  */
-          }
+        /* YOUR CODE HERE?  Parent-side code for new process.  */
+    }
 
-            /* YOUR CODE HERE?  Parent-side code for new job.*/
-	    seize_tty(getpid()); // assign the terminal back to dsh
+    /* YOUR CODE HERE?  Parent-side code for new job.*/
+    seize_tty(getpid()); // assign the terminal back to dsh
 
-	}
+  }
 }
 
 /* Sends SIGCONT signal to wake up the blocked job */
 void continue_job(job_t *j) 
 {
-     if(kill(-j->pgid, SIGCONT) < 0)
-          perror("kill(SIGCONT)");
+  if(kill(-j->pgid, SIGCONT) < 0)
+    perror("kill(SIGCONT)");
 }
 
 
@@ -102,64 +103,82 @@ void continue_job(job_t *j)
 bool builtin_cmd(job_t *last_job, int argc, char **argv) 
 {
 
-	    /* check whether the cmd is a built in command
-        */
-
-        if (!strcmp(argv[0], "quit")) {
-            /* Your code here */
-            exit(EXIT_SUCCESS);
-	}
-        else if (!strcmp("jobs", argv[0])) {
-            /* Your code here */
-            return true;
-        }
-	else if (!strcmp("cd", argv[0])) {
-            /* Your code here */
-        }
-        else if (!strcmp("bg", argv[0])) {
-            /* Your code here */
-        }
-        else if (!strcmp("fg", argv[0])) {
-            /* Your code here */
-        }
-        return false;       /* not a builtin command */
+  /* check whether the cmd is a built in command
+  */
+  if (!strcmp(argv[0], "quit")) {
+    /* Your code here */
+    exit(EXIT_SUCCESS);
+  }
+  else if (!strcmp("jobs", argv[0])) {
+    /* Your code here */
+    return true;
+  }
+  else if (!strcmp("cd", argv[0])) {
+    /* Your code here */
+  }
+  else if (!strcmp("bg", argv[0])) {
+    /* Your code here */
+  }
+  else if (!strcmp("fg", argv[0])) {
+    /* Your code here */
+  }
+  return false;       /* not a builtin command */
 }
 
 /* Build prompt messaage */
 char* promptmsg() 
 {
-    /* Modify this to include pid */
-	return "dsh$ ";
+  /* Modify this to include pid */
+  char buffer[20];
+  sprintf( buffer, "%d", getpid() );
+  static char str[25];
+  strcpy(str, "dsh-");
+  strcat(str, buffer);
+  strcat(str, "$ ");
+  return str;
 }
 
 int main() 
 {
 
-	init_dsh();
-	DEBUG("Successfully initialized\n");
+  init_dsh();
+  DEBUG("Successfully initialized\n");
 
-	while(1) {
-        job_t *j = NULL;
-		if(!(j = readcmdline(promptmsg()))) {
-			if (feof(stdin)) { /* End of file (ctrl-d) */
-				fflush(stdout);
-				printf("\n");
-				exit(EXIT_SUCCESS);
-           		}
-			continue; /* NOOP; user entered return or spaces with return */
-		}
+  while(1) {
+    job_t *j = NULL;
+    if(!(j = readcmdline(promptmsg()))) {
+      if (feof(stdin)) { /* End of file (ctrl-d) */
+        fflush(stdout);
+        printf("\n");
+        exit(EXIT_SUCCESS);
+      }
+      continue; /* NOOP; user entered return or spaces with return */
+    }
 
-        /* Only for debugging purposes to show parser output; turn off in the
-         * final code */
-        if(PRINT_INFO) print_job(j);
+    /* Only for debugging purposes to show parser output; turn off in the
+     * final code */
+    if(PRINT_INFO) print_job(j);
 
-        /* Your code goes here */
-        /* You need to loop through jobs list since a command line can contain ;*/
-        /* Check for built-in commands */
-        /* If not built-in */
-            /* If job j runs in foreground */
-            /* spawn_job(j,true) */
-            /* else */
-            /* spawn_job(j,false) */
+    /* Your code goes here */
+    process_t *current_process = NULL;
+
+    if(!j->first_process)
+      continue;
+
+    current_process = j->first_process;
+    /* You need to loop through jobs list since a command line can contain ;*/
+    while(current_process!=NULL){
+      /* Check for built-in commands */
+      if(!builtin_cmd(j, current_process->argc, current_process->argv))
+        exit(EXIT_FAILURE);
+
+      /* If not built-in */
+          /* If job j runs in foreground */
+          /* spawn_job(j,true) */
+          /* else */
+          /* spawn_job(j,false) */
+
+    }
+
     }
 }
