@@ -70,6 +70,8 @@ void spawn_job(job_t *j, bool fg)
         new_child(j, p, fg);
             
         /* YOUR CODE HERE?  Child-side code for new process. */
+          
+
         perror("New child should have done an exec");
         exit(EXIT_FAILURE);  /* NOT REACHED */
         break;    /* NOT REACHED */
@@ -80,9 +82,12 @@ void spawn_job(job_t *j, bool fg)
         set_child_pgid(j, p);
 
         /* YOUR CODE HERE?  Parent-side code for new process.  */
+
+
     }
 
     /* YOUR CODE HERE?  Parent-side code for new job.*/
+
     seize_tty(getpid()); // assign the terminal back to dsh
 
   }
@@ -115,6 +120,7 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
   }
   else if (!strcmp("cd", argv[0])) {
     /* Your code here */
+
     return true;
   }
   else if (!strcmp("bg", argv[0])) {
@@ -175,16 +181,16 @@ int main()
       /* If not built-in */
       if(!builtin_cmd(j, current_process->argc, current_process->argv)){
         /* If job j runs in foreground */
-        // if(!j->bg){
-        // /* spawn_job(j,true) */
-        //   spawn_job(j,true);
-        // }
+        if(!j->bg){
+        /* spawn_job(j,true) */
+          spawn_job(j,true);
+        }
         // /* else */
-        // else{
-        //   spawn_job(j,false);
-        // /* spawn_job(j,false) */
-        // }
-        exit(EXIT_FAILURE);
+        else{
+          spawn_job(j,false);
+        /* spawn_job(j,false) */
+        }
+        // exit(EXIT_FAILURE);
       }
       current_process = current_process->next;
     }
