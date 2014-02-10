@@ -5,6 +5,7 @@ void continue_job(job_t *j); /* resume a stopped job */
 void spawn_job(job_t *j, bool fg); /* spawn a new job */
 
 job_t *firstjob;
+FILE *f;
 
 /* Sets the process group id for a given job and process */
 int set_child_pgid(job_t *j, process_t *p)
@@ -74,13 +75,13 @@ void spawn_job(job_t *j, bool fg)
         new_child(j, p, fg);
         /* YOUR CODE HERE?  Child-side code for new process. */
         printf("%d(Launched): %s\n", j->pgid, j->commandinfo);
+        fprintf(f, "%d(Launched): %s\n", j->pgid, j->commandinfo);
         fflush(stdout);
         if(execvp(p->argv[0], p->argv) == -1)
         {
-
-          //kill(p->pid, SIGKILL);
+          fprintf(f, "Error: (execvp) Not an external file \n");
+          kill(p->pid, SIGKILL);
           //kill(p->pid, SIGTERM);
-          // perror("BIG FAIL");
         }
 
         // perror("New child should have done an exec");
@@ -131,26 +132,31 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
   }
   else if (!strcmp("jobs", argv[0])) {
     //printf("%s\n", last_job->commandinfo);
-    job_t *j = firstjob;
+    job_t *j = firstjob->next;
     while(j){
+      job_t *next = j->next;
       if(job_is_completed(j)){
         printf("%d(Completed): %s\n", j->pgid, j->commandinfo);
+        fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
         delete_job(j, firstjob);
         // process_t * p = j->first_process;
         // while(p){
         //   p = p->next;
         // }
         // Kill all processes
+        //printf("completed\n");
       }
       else if(job_is_stopped(j)){
         printf("%d(Stopped): %s\n", j->pgid, j->commandinfo);
+        fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
       }
       else{
         printf("%d(Running): %s\n", j->pgid, j->commandinfo);
+        fprintf(f, "%d(Running): %s\n", j->pgid, j->commandinfo);
       }
-      j = j->next;
+      printf("next\n");
+      j = next;
     }
-    
     return true;
   }
   else if (!strcmp("cd", argv[0])) {
@@ -185,9 +191,11 @@ char* promptmsg()
 
 int main() 
 {
-
   init_dsh();
   DEBUG("Successfully initialized\n");
+
+  firstjob = (job_t *)malloc(sizeof(job_t));
+  f = fopen("dsh.log", "w");
 
   while(1) {
     job_t *j = NULL;
@@ -213,10 +221,12 @@ int main()
 
       current_process = j->first_process;
       /* You need to loop through jobs list since a command line can contain ;*/
+      bool builtin = false;
       while(current_process!=NULL){
         /* Check for built-in commands */
         /* If not built-in */
-        if(!builtin_cmd(j, current_process->argc, current_process->argv)){
+        builtin = builtin_cmd(j, current_process->argc, current_process->argv);
+        if(!builtin){
           /* If job j runs in foreground */
           if(!j->bg){
           /* spawn_job(j,true) */
@@ -228,27 +238,25 @@ int main()
           /* spawn_job(j,false) */
           }
           // exit(EXIT_FAILURE);
+
         }
-
-        printf("sdfsdf\n");
         current_process->completed = true;
-        printf("did %d\n", current_process->completed);
-
-        
+        //printf("did %d\n", current_process->completed);
         current_process = current_process->next;
       }
-
-      if(!firstjob){
-        firstjob = j;
-      }
-      else{
+      //printf("here %d\n", builtin);
+      if(!builtin){
+        // if(!firstjob){
+        //   firstjob = j;
+        // }
+        // else{
         find_last_job(firstjob)->next = j;
+        // }
       }
-
+      //print_job(firstjob->next);
       j = j->next;
     }
 
-    //print_job(firstjob);
 
   }
 }
