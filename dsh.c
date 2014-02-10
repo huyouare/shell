@@ -95,6 +95,10 @@ void spawn_job(job_t *j, bool fg)
         int status;
         /* YOUR CODE HERE?  Parent-side code for new process.  */
         waitpid(pid, &status, WUNTRACED);
+        p->stopped = true;
+        if(waitpid(pid, &status, WNOHANG)){
+          p->completed = true;
+        }
         // while(!wait){
         //   wait = waitpid(pid, &status, WNOHANG);
         // }
@@ -240,7 +244,7 @@ int main()
           // exit(EXIT_FAILURE);
 
         }
-        current_process->completed = true;
+        
         //printf("did %d\n", current_process->completed);
         current_process = current_process->next;
       }
@@ -253,7 +257,7 @@ int main()
         find_last_job(firstjob)->next = j;
         // }
       }
-      //print_job(firstjob->next);
+      print_job(firstjob->next);
       j = j->next;
     }
 
