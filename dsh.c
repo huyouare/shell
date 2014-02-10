@@ -57,6 +57,7 @@ void spawn_job(job_t *j, bool fg)
   for(p = j->first_process; p; p = p->next) {
 
     /* YOUR CODE HERE? */
+    // Piping, setting up next processes
     /* Builtin commands are already taken care earlier */
     
     switch (pid = fork()) {
@@ -121,15 +122,15 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
     /* Your code here */
     exit(EXIT_SUCCESS);
   }
-  else if (!strcmp("jobs", argv[0])) {
-    fprintf(stdout, "%s\n", last_job->commandinfo);
-    while(last_job->next){
-      fprintf(stdout, "%s\n", last_job->commandinfo);
-      last_job = last_job->next;
-    }
+  // else if (!strcmp("jobs", argv[0])) {
+  //   fprintf(stdout, "%s\n", last_job->commandinfo);
+  //   while(last_job->next){
+  //     fprintf(stdout, "%s\n", last_job->commandinfo);
+  //     last_job = last_job->next;
+  //   }
     
-    return true;
-  }
+  //   return true;
+  // }
   else if (!strcmp("cd", argv[0])) {
     /* Your code here */
     chdir(argv[1]);
@@ -143,14 +144,7 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
     /* Your code here */
     return true;
   }
-  else if (!strcmp("pwd", argv[0])) {
-    fprintf(stdout, "%s", "TESTSTS");
-    char buffer[20];
-    getcwd(buffer, 20);
-    fprintf(stdout, "%s", buffer);
 
-    return true;
-  }
   return false;       /* not a builtin command */
 }
 
