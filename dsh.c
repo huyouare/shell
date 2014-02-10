@@ -94,9 +94,9 @@ void spawn_job(job_t *j, bool fg)
         set_child_pgid(j, p);
         int status;
         /* YOUR CODE HERE?  Parent-side code for new process.  */
-        waitpid(pid, &status, WUNTRACED);
+        waitpid(pid, &status, WUNTRACED); // Stopped or Terminated
         p->stopped = true;
-        if(waitpid(pid, &status, WNOHANG)){
+        if(waitpid(pid, &status, WNOHANG)){ // Terminated ONLY
           p->completed = true;
         }
         // while(!wait){
