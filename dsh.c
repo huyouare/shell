@@ -77,8 +77,9 @@ void spawn_job(job_t *j, bool fg)
         fflush(stdout);
         if(execvp(p->argv[0], p->argv) == -1)
         {
-          kill(p->pid, SIGKILL);
-          //kill(pid, SIGTERM);
+
+          //kill(p->pid, SIGKILL);
+          //kill(p->pid, SIGTERM);
           // perror("BIG FAIL");
         }
 
@@ -130,9 +131,24 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
   }
   else if (!strcmp("jobs", argv[0])) {
     //printf("%s\n", last_job->commandinfo);
-    while(last_job->next){
-      printf("%s\n", last_job->commandinfo);
-      last_job = last_job->next;
+    job_t *j = firstjob;
+    while(j){
+      if(job_is_completed(j)){
+        printf("%d(Completed): %s\n", j->pgid, j->commandinfo);
+        delete_job(j, firstjob);
+        // process_t * p = j->first_process;
+        // while(p){
+        //   p = p->next;
+        // }
+        // Kill all processes
+      }
+      else if(job_is_stopped(j)){
+        printf("%d(Stopped): %s\n", j->pgid, j->commandinfo);
+      }
+      else{
+        printf("%d(Running): %s\n", j->pgid, j->commandinfo);
+      }
+      j = j->next;
     }
     
     return true;
@@ -213,6 +229,12 @@ int main()
           }
           // exit(EXIT_FAILURE);
         }
+
+        printf("sdfsdf\n");
+        current_process->completed = true;
+        printf("did %d\n", current_process->completed);
+
+        
         current_process = current_process->next;
       }
 
@@ -226,7 +248,7 @@ int main()
       j = j->next;
     }
 
-    print_job(firstjob);
+    //print_job(firstjob);
 
   }
 }
