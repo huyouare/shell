@@ -70,7 +70,10 @@ void spawn_job(job_t *j, bool fg)
         new_child(j, p, fg);
             
         /* YOUR CODE HERE?  Child-side code for new process. */
-          
+        if(execvp(p->argv[0], p->argv) == -1)
+        {
+          perror("BIG FAIL");
+        }
 
         perror("New child should have done an exec");
         exit(EXIT_FAILURE);  /* NOT REACHED */
@@ -80,9 +83,13 @@ void spawn_job(job_t *j, bool fg)
         /* establish child process group */
         p->pid = pid;
         set_child_pgid(j, p);
-
+        int status;
         /* YOUR CODE HERE?  Parent-side code for new process.  */
-
+        waitpid(pid, &status, WUNTRACED);
+        // while(!wait){
+        //   wait = waitpid(pid, &status, WNOHANG);
+        // }
+        //fprintf(stdout, "%d", wait);
 
     }
 
@@ -116,19 +123,32 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
   }
   else if (!strcmp("jobs", argv[0])) {
     fprintf(stdout, "%s\n", last_job->commandinfo);
+    while(last_job->next){
+      fprintf(stdout, "%s\n", last_job->commandinfo);
+      last_job = last_job->next;
+    }
+    
     return true;
   }
   else if (!strcmp("cd", argv[0])) {
     /* Your code here */
-
+    chdir(argv[1]);
     return true;
   }
   else if (!strcmp("bg", argv[0])) {
     /* Your code here */
-    return true;
+    return false;
   }
   else if (!strcmp("fg", argv[0])) {
     /* Your code here */
+    return true;
+  }
+  else if (!strcmp("pwd", argv[0])) {
+    fprintf(stdout, "%s", "TESTSTS");
+    char buffer[20];
+    getcwd(buffer, 20);
+    fprintf(stdout, "%s", buffer);
+
     return true;
   }
   return false;       /* not a builtin command */
@@ -166,7 +186,7 @@ int main()
 
     /* Only for debugging purposes to show parser output; turn off in the
      * final code */
-    if(PRINT_INFO) print_job(j);
+    // if(PRINT_INFO) print_job(j);
 
     /* Your code goes here */
     process_t *current_process = NULL;
