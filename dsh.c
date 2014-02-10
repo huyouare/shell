@@ -4,6 +4,8 @@ void seize_tty(pid_t callingprocess_pgid); /* Grab control of the terminal for t
 void continue_job(job_t *j); /* resume a stopped job */
 void spawn_job(job_t *j, bool fg); /* spawn a new job */
 
+job_t *firstjob;
+
 /* Sets the process group id for a given job and process */
 int set_child_pgid(job_t *j, process_t *p)
 {
@@ -55,8 +57,9 @@ void spawn_job(job_t *j, bool fg)
   process_t *p;
 
   for(p = j->first_process; p; p = p->next) {
-
+    
     /* YOUR CODE HERE? */
+
     // Piping, setting up next processes
     /* Builtin commands are already taken care earlier */
     
@@ -69,11 +72,9 @@ void spawn_job(job_t *j, bool fg)
       case 0: /* child process  */
         p->pid = getpid();      
         new_child(j, p, fg);
-            
         /* YOUR CODE HERE?  Child-side code for new process. */
-        printf("HELLO\n");
-        printf("%d", p->pid);
-        printf("%d(Launched): ", p->pid);
+        printf("%d(Launched): %s\n", j->pgid, j->commandinfo);
+        fflush(stdout);
         if(execvp(p->argv[0], p->argv) == -1)
         {
           kill(p->pid, SIGKILL);
@@ -128,7 +129,7 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
     exit(EXIT_SUCCESS);
   }
   else if (!strcmp("jobs", argv[0])) {
-    printf("%s\n", last_job->commandinfo);
+    //printf("%s\n", last_job->commandinfo);
     while(last_job->next){
       printf("%s\n", last_job->commandinfo);
       last_job = last_job->next;
@@ -157,7 +158,7 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
 char* promptmsg() 
 {
   /* Modify this to include pid */
-  char buffer[20];
+  char buffer[MAX_LEN_CMDLINE];
   sprintf( buffer, "%d", getpid() );
   static char str[25];
   strcpy(str, "dsh-");
@@ -185,34 +186,47 @@ int main()
 
     /* Only for debugging purposes to show parser output; turn off in the
      * final code */
-    // if(PRINT_INFO) print_job(j);
+    //if(PRINT_INFO) print_job(j);
 
     /* Your code goes here */
-    process_t *current_process = NULL;
+    while(j){
+      process_t *current_process = NULL;
 
-    if(!j->first_process)
-      continue;
+      if(!j->first_process)
+        continue;
 
-    current_process = j->first_process;
-    /* You need to loop through jobs list since a command line can contain ;*/
-    while(current_process!=NULL){
-      /* Check for built-in commands */
-      /* If not built-in */
-      if(!builtin_cmd(j, current_process->argc, current_process->argv)){
-        /* If job j runs in foreground */
-        if(!j->bg){
-        /* spawn_job(j,true) */
-          spawn_job(j,true);
+      current_process = j->first_process;
+      /* You need to loop through jobs list since a command line can contain ;*/
+      while(current_process!=NULL){
+        /* Check for built-in commands */
+        /* If not built-in */
+        if(!builtin_cmd(j, current_process->argc, current_process->argv)){
+          /* If job j runs in foreground */
+          if(!j->bg){
+          /* spawn_job(j,true) */
+            spawn_job(j,true);
+          }
+          // /* else */
+          else{
+            spawn_job(j,false);
+          /* spawn_job(j,false) */
+          }
+          // exit(EXIT_FAILURE);
         }
-        // /* else */
-        else{
-          spawn_job(j,false);
-        /* spawn_job(j,false) */
-        }
-        // exit(EXIT_FAILURE);
+        current_process = current_process->next;
       }
-      current_process = current_process->next;
+
+      if(!firstjob){
+        firstjob = j;
+      }
+      else{
+        find_last_job(firstjob)->next = j;
+      }
+
+      j = j->next;
     }
+
+    print_job(firstjob);
 
   }
 }
