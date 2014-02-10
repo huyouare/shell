@@ -71,14 +71,19 @@ void spawn_job(job_t *j, bool fg)
         new_child(j, p, fg);
             
         /* YOUR CODE HERE?  Child-side code for new process. */
+        printf("HELLO\n");
+        printf("%d", p->pid);
+        printf("%d(Launched): ", p->pid);
         if(execvp(p->argv[0], p->argv) == -1)
         {
-          perror("BIG FAIL");
+          kill(p->pid, SIGKILL);
+          //kill(pid, SIGTERM);
+          // perror("BIG FAIL");
         }
 
-        perror("New child should have done an exec");
-        exit(EXIT_FAILURE);  /* NOT REACHED */
-        break;    /* NOT REACHED */
+        // perror("New child should have done an exec");
+        // exit(EXIT_FAILURE);  /* NOT REACHED */
+        // break;    /* NOT REACHED */
 
       default: /* parent */
         /* establish child process group */
@@ -122,15 +127,15 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
     /* Your code here */
     exit(EXIT_SUCCESS);
   }
-  // else if (!strcmp("jobs", argv[0])) {
-  //   fprintf(stdout, "%s\n", last_job->commandinfo);
-  //   while(last_job->next){
-  //     fprintf(stdout, "%s\n", last_job->commandinfo);
-  //     last_job = last_job->next;
-  //   }
+  else if (!strcmp("jobs", argv[0])) {
+    printf("%s\n", last_job->commandinfo);
+    while(last_job->next){
+      printf("%s\n", last_job->commandinfo);
+      last_job = last_job->next;
+    }
     
-  //   return true;
-  // }
+    return true;
+  }
   else if (!strcmp("cd", argv[0])) {
     /* Your code here */
     chdir(argv[1]);
