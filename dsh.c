@@ -117,14 +117,17 @@ void spawn_job(job_t *j, bool fg)
 void continue_job(job_t *j) 
 {
   if(kill(-j->pgid, SIGCONT) < 0){
+    perror("kill(SIGCONT)");
+  }
+  else{
+    printf("success\n");
     process_t * p = j->first_process;
     while(p){
-      if(!p.completed){
-        p.stopped = false;
+      if(!p->completed){
+        p->stopped = false;
       }
       p = p->next;
     }
-    perror("kill(SIGCONT)");
   }
 }
 
@@ -201,6 +204,8 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
 
     printf("hello\n");
     seize_tty(j->pgid);
+    //seize_tty(getpid()); // assign the terminal back to dsh
+
 
     return true;
   }
@@ -260,12 +265,13 @@ int main()
         builtin = builtin_cmd(j, current_process->argc, current_process->argv);
         if(!builtin){
           /* If job j runs in foreground */
-          if(!j->bg){
+          if(!j->bg){ // If parse received '&'
           /* spawn_job(j,true) */
             spawn_job(j,true);
           }
           // /* else */
           else{
+            printf("background!!!\n");
             spawn_job(j,false);
           /* spawn_job(j,false) */
           }
