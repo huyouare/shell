@@ -1,0 +1,128 @@
+~/Documents/14_spring/cs310/lab2$ ./dsh
+dsh-4523$ pwd; pwd
+4524(Launched): pwd
+/Users/jessehu/Documents/14_spring/cs310/lab2
+
+#DISPLAY JOB INFO BEGIN#
+job: 4524, pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: -1,  pwd
+cmd: pwd  
+Status: -1, Completed: 0, Stopped: 0
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+4525(Launched):  pwd
+/Users/jessehu/Documents/14_spring/cs310/lab2
+
+#DISPLAY JOB INFO BEGIN#
+job: 4524, pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
+
+Foreground job
+#DISPLAY JOB INFO END#
+
+
+#DISPLAY JOB INFO BEGIN#
+job: 4525,  pwd
+cmd: pwd  
+Status: -1, Completed: 1, Stopped: 1
