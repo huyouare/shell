@@ -116,8 +116,16 @@ void spawn_job(job_t *j, bool fg)
 /* Sends SIGCONT signal to wake up the blocked job */
 void continue_job(job_t *j) 
 {
-  if(kill(-j->pgid, SIGCONT) < 0)
+  if(kill(-j->pgid, SIGCONT) < 0){
+    process_t * p = j->first_process;
+    while(p){
+      if(!p.completed){
+        p.stopped = false;
+      }
+      p = p->next;
+    }
     perror("kill(SIGCONT)");
+  }
 }
 
 
@@ -170,10 +178,30 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
   }
   else if (!strcmp("bg", argv[0])) {
     /* Your code here */
+
     return false;
   }
   else if (!strcmp("fg", argv[0])) {
     /* Your code here */
+    if( !argv[1] )
+      return true;
+    int pgid = atoi(argv[1]);
+    printf("%d\n", pgid);
+    // Cycle through joblist to find job
+    job_t *j = firstjob->next;
+    while(j->pgid != pgid){
+      if(!j){
+        printf("pgid not found.");
+        return true;
+      }
+      j = j->next;
+    }
+    
+    continue_job(j);
+
+    printf("hello\n");
+    seize_tty(j->pgid);
+
     return true;
   }
 
