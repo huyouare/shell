@@ -62,6 +62,7 @@ void spawn_job(job_t *j, bool fg)
     /* YOUR CODE HERE? */
 
     // Piping, setting up next processes
+
     /* Builtin commands are already taken care earlier */
     
     switch (pid = fork()) {
@@ -77,6 +78,22 @@ void spawn_job(job_t *j, bool fg)
         printf("%d(Launched): %s\n", j->pgid, j->commandinfo);
         fprintf(f, "%d(Launched): %s\n", j->pgid, j->commandinfo);
         fflush(stdout);
+        
+        if(p->ifile){
+          int o;
+          if( (o = open(p->ifile, O_RDONLY)) < 0){
+            perror("Couldn't open ifile file");
+          }
+          dup2(o, 0);
+        }
+        else if(p->ofile){
+          printf("outputtt\n");
+          int o;
+          if( (o = open(p->ofile, O_CREAT|O_TRUNC|O_WRONLY, 0644)) < 0 ){
+            perror("Couldn't open ofile file");
+          }
+          dup2(o, 1);
+        }
         if(execvp(p->argv[0], p->argv) == -1)
         {
           fprintf(f, "Error: (execvp) Not an external file \n");
