@@ -308,6 +308,8 @@ int main()
         find_last_job(firstjob)->next = j;
         // }
       }
+      printf("Last job's command: %s\n", find_last_job(firstjob)->commandinfo);
+      printf("I'm printing\n");
       print_job(firstjob->next);
       j = j->next;
     }
