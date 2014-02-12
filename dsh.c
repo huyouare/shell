@@ -85,9 +85,8 @@ void spawn_job(job_t *j, bool fg)
           if( (i = open(p->ifile, O_RDONLY)) < 0){
             perror("Couldn't open ifile file");
           }
-          dup2(0, i);
+          dup2(i, 0);
         }
-
         if(p->ofile){
           printf("outputtt\n");
           int o;
@@ -96,22 +95,16 @@ void spawn_job(job_t *j, bool fg)
           }
           dup2(o, 1);
         }
-        else{
+        if(p != j->first_process){ // When we're not on the first process
           // Set up pipeline
           dup2(fd[0], STDIN_FILENO);
         }
-
-
         if(execvp(p->argv[0], p->argv) == -1)
         {
           fprintf(f, "Error: (execvp) Not an external file \n");
           kill(p->pid, SIGKILL);
           //kill(p->pid, SIGTERM);
         }
-
-        // perror("New child should have done an exec");
-        // exit(EXIT_FAILURE);  /* NOT REACHED */
-        // break;    /* NOT REACHED */
 
       default: /* parent */
         /* establish child process group */
@@ -277,6 +270,7 @@ int main()
     //if(PRINT_INFO) print_job(j);
 
     /* Your code goes here */
+    bool builtin;
     while(j){
       process_t *current_process = NULL;
 
@@ -285,7 +279,7 @@ int main()
 
       current_process = j->first_process;
       /* You need to loop through jobs list since a command line can contain ;*/
-      bool builtin = false;
+      builtin = false;
       if(current_process){
         /* Check for built-in commands */
         /* If not built-in */
@@ -305,15 +299,15 @@ int main()
         current_process = current_process->next;
       }
       //printf("here %d\n", builtin);
-      if(!builtin){
-        find_last_job(firstjob)->next = j;
-      }
+
       printf("Last job's command: %s\n", find_last_job(firstjob)->commandinfo);
       printf("I'm printing\n");
       print_job(firstjob->next);
       j = j->next;
     }
-
+    if(!builtin){
+      find_last_job(firstjob)->next = j;
+    }
 
   }
 }
