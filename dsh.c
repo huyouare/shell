@@ -113,9 +113,11 @@ void spawn_job(job_t *j, bool fg)
         int status;
         /* YOUR CODE HERE?  Parent-side code for new process.  */
         //dup2(fd[1], STDOUT_FILENO);
-
-        waitpid(pid, &status, WUNTRACED); // Stopped or Terminated
-        p->stopped = true;
+        if(fg){
+          printf("tryinggg\n");
+          waitpid(pid, &status, WUNTRACED); // Stopped or Terminated
+          p->stopped = true;
+        }
         if(waitpid(pid, &status, WNOHANG)){ // Terminated ONLY
           p->completed = true;
         }
@@ -219,12 +221,23 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
       }
       j = j->next;
     }
+    printf("job: %s\n", j->commandinfo);
     
     continue_job(j);
 
     printf("hello\n");
     seize_tty(j->pgid);
-    //seize_tty(getpid()); // assign the terminal back to dsh
+    int status;
+    process_t *p = j->first_process;
+    while(p){
+      waitpid(p->pid, &status, WUNTRACED); // Stopped or Terminated
+      p->stopped = true;
+      if(waitpid(p->pid, &status, WNOHANG)){ // Terminated ONLY
+        p->completed = true;
+      }
+      p = p->next;
+    }
+    seize_tty(getpid()); // assign the terminal back to dsh
 
 
     return true;
