@@ -293,10 +293,10 @@ int main()
             printf("background!!!\n");
             spawn_job(j,false);
           }
+          find_last_job(firstjob)->next = j;
         }
         
         //printf("did %d\n", current_process->completed);
-        current_process = current_process->next;
       }
       //printf("here %d\n", builtin);
 
