@@ -56,14 +56,15 @@ void spawn_job(job_t *j, bool fg)
 
   pid_t pid;
   process_t *p;
+  int fd[2];
+  int fd_in = 0;
 
   for(p = j->first_process; p; p = p->next) {
     
     /* YOUR CODE HERE? */
-
-    // Piping, setting up next processes
-    int fd[2];
     pipe(fd);
+    // Piping, setting up next processes
+
     /* Builtin commands are already taken care earlier */
 
     switch (pid = fork()) {
@@ -99,21 +100,13 @@ void spawn_job(job_t *j, bool fg)
           }
           dup2(o, 1);
         }
-        if(p == j->first_process){ // When we're not on the first process
-          // Set up pipeline
-          printf("first\n");
-          close(fd[0]);
+
+        dup2(fd_in, 0);
+        if(p->next){
           dup2(fd[1], 1);
         }
-        else if(p->next){
-          printf("second\n");
-          dup2(fd[1], 1);
-          dup2(fd[0], 0);
-        }
-        else{
-          printf("third\n");
-          dup2(fd[0], 0);
-        }
+        close(fd[0]);
+
         if(execvp(p->argv[0], p->argv) == -1)
         {
           fprintf(f, "Error: (execvp) Not an external file \n");
@@ -125,29 +118,30 @@ void spawn_job(job_t *j, bool fg)
         /* establish child process group */
         p->pid = pid;
         set_child_pgid(j, p);
-        int status;
-        /* YOUR CODE HERE?  Parent-side code for new process.  */
-        //dup2(fd[1], STDOUT_FILENO);
-        if(fg && !p->next){
-          printf("tryinggg\n");
-          waitpid(pid, &status, WUNTRACED); // Stopped or Terminated
-          p->stopped = true;
-        }
-        if(waitpid(pid, &status, WNOHANG)){ // Terminated ONLY
-          p->completed = true;
-        }
-        // while(!wait){
-        //   wait = waitpid(pid, &status, WNOHANG);
-        // }
-        //fprintf(stdout, "%d", wait);
 
+        /* YOUR CODE HERE?  Parent-side code for new process.  */
+        close(fd[1]);
+        fd_in = fd[0];
+
+        int status;
     }
 
-    /* YOUR CODE HERE?  Parent-side code for new job.*/
-
-    seize_tty(getpid()); // assign the terminal back to dsh
-
   }
+
+  /* YOUR CODE HERE?  Parent-side code for new job.*/
+  for(p = j->first_process; p; p = p->next) {
+    int status;
+    if(fg){
+      waitpid(pid, &status, WUNTRACED); // Stopped or Terminated
+      p->stopped = true;
+    }
+    if(waitpid(pid, &status, WNOHANG)){ // Terminated ONLY
+      p->stopped = true;
+      p->completed = true;
+    }
+  }
+
+  seize_tty(getpid()); // assign the terminal back to dsh
 }
 
 /* Sends SIGCONT signal to wake up the blocked job */
@@ -191,12 +185,6 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
         printf("%d(Completed): %s\n", j->pgid, j->commandinfo);
         fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
         delete_job(j, firstjob);
-        // process_t * p = j->first_process;
-        // while(p){
-        //   p = p->next;
-        // }
-        // Kill all processes
-        //printf("completed\n");
       }
       else if(job_is_stopped(j)){
         printf("%d(Stopped): %s\n", j->pgid, j->commandinfo);
@@ -301,9 +289,6 @@ int main()
     bool builtin;
     while(j){
       process_t *current_process = NULL;
-
-      // if(!j->first_process)
-      //   continue;
 
       current_process = j->first_process;
       /* You need to loop through jobs list since a command line can contain ;*/
