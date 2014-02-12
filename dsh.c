@@ -62,7 +62,8 @@ void spawn_job(job_t *j, bool fg)
     /* YOUR CODE HERE? */
 
     // Piping, setting up next processes
-
+    int fd[2];
+    pipe(fd);
     /* Builtin commands are already taken care earlier */
     
     switch (pid = fork()) {
@@ -80,13 +81,14 @@ void spawn_job(job_t *j, bool fg)
         fflush(stdout);
         
         if(p->ifile){
-          int o;
-          if( (o = open(p->ifile, O_RDONLY)) < 0){
+          int i;
+          if( (i = open(p->ifile, O_RDONLY)) < 0){
             perror("Couldn't open ifile file");
           }
-          dup2(o, 0);
+          dup2(0, i);
         }
-        else if(p->ofile){
+
+        if(p->ofile){
           printf("outputtt\n");
           int o;
           if( (o = open(p->ofile, O_CREAT|O_TRUNC|O_WRONLY, 0644)) < 0 ){
@@ -94,6 +96,12 @@ void spawn_job(job_t *j, bool fg)
           }
           dup2(o, 1);
         }
+        else{
+          // Set up pipeline
+          dup2(fd[0], STDIN_FILENO);
+        }
+
+
         if(execvp(p->argv[0], p->argv) == -1)
         {
           fprintf(f, "Error: (execvp) Not an external file \n");
@@ -111,6 +119,8 @@ void spawn_job(job_t *j, bool fg)
         set_child_pgid(j, p);
         int status;
         /* YOUR CODE HERE?  Parent-side code for new process.  */
+        //dup2(fd[1], STDOUT_FILENO);
+
         waitpid(pid, &status, WUNTRACED); // Stopped or Terminated
         p->stopped = true;
         if(waitpid(pid, &status, WNOHANG)){ // Terminated ONLY
@@ -270,30 +280,25 @@ int main()
     while(j){
       process_t *current_process = NULL;
 
-      if(!j->first_process)
-        continue;
+      // if(!j->first_process)
+      //   continue;
 
       current_process = j->first_process;
       /* You need to loop through jobs list since a command line can contain ;*/
       bool builtin = false;
-      while(current_process!=NULL){
+      if(current_process){
         /* Check for built-in commands */
         /* If not built-in */
-        builtin = builtin_cmd(j, current_process->argc, current_process->argv);
-        if(!builtin){
+        builtin = builtin_cmd(j, current_process->argc, current_process->argv); //Check if first process is builtin
+        if(!builtin){ // If not, call spawn_job
           /* If job j runs in foreground */
           if(!j->bg){ // If parse received '&'
-          /* spawn_job(j,true) */
             spawn_job(j,true);
           }
-          // /* else */
-          else{
+          else{ // Run in background
             printf("background!!!\n");
             spawn_job(j,false);
-          /* spawn_job(j,false) */
           }
-          // exit(EXIT_FAILURE);
-
         }
         
         //printf("did %d\n", current_process->completed);
@@ -301,12 +306,7 @@ int main()
       }
       //printf("here %d\n", builtin);
       if(!builtin){
-        // if(!firstjob){
-        //   firstjob = j;
-        // }
-        // else{
         find_last_job(firstjob)->next = j;
-        // }
       }
       printf("Last job's command: %s\n", find_last_job(firstjob)->commandinfo);
       printf("I'm printing\n");
