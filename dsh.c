@@ -65,7 +65,7 @@ void spawn_job(job_t *j, bool fg)
     int fd[2];
     pipe(fd);
     /* Builtin commands are already taken care earlier */
-    
+
     switch (pid = fork()) {
 
       case -1: /* fork failure */
@@ -76,8 +76,12 @@ void spawn_job(job_t *j, bool fg)
         p->pid = getpid();      
         new_child(j, p, fg);
         /* YOUR CODE HERE?  Child-side code for new process. */
-        printf("%d(Launched): %s\n", j->pgid, j->commandinfo);
-        fprintf(f, "%d(Launched): %s\n", j->pgid, j->commandinfo);
+
+        if(p == j->first_process){
+          printf("%d(Launched): %s\n", j->pgid, j->commandinfo);
+          fprintf(f, "%d(Launched): %s\n", j->pgid, j->commandinfo);
+        }
+
         fflush(stdout);
         
         if(p->ifile){
@@ -95,9 +99,20 @@ void spawn_job(job_t *j, bool fg)
           }
           dup2(o, 1);
         }
-        if(p != j->first_process){ // When we're not on the first process
+        if(p == j->first_process){ // When we're not on the first process
           // Set up pipeline
-          dup2(fd[0], STDIN_FILENO);
+          printf("first\n");
+          close(fd[0]);
+          dup2(fd[1], 1);
+        }
+        else if(p->next){
+          printf("second\n");
+          dup2(fd[1], 1);
+          dup2(fd[0], 0);
+        }
+        else{
+          printf("third\n");
+          dup2(fd[0], 0);
         }
         if(execvp(p->argv[0], p->argv) == -1)
         {
@@ -113,7 +128,7 @@ void spawn_job(job_t *j, bool fg)
         int status;
         /* YOUR CODE HERE?  Parent-side code for new process.  */
         //dup2(fd[1], STDOUT_FILENO);
-        if(fg){
+        if(fg && !p->next){
           printf("tryinggg\n");
           waitpid(pid, &status, WUNTRACED); // Stopped or Terminated
           p->stopped = true;
