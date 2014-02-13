@@ -64,7 +64,7 @@ void spawn_job(job_t *j, bool fg)
     /* YOUR CODE HERE? */
     pipe(fd);
     // Piping, setting up next processes
-
+    int len = strlen(p->argv[0]); // used for checking for .c files
     /* Builtin commands are already taken care earlier */
 
     switch (pid = fork()) {
@@ -107,20 +107,17 @@ void spawn_job(job_t *j, bool fg)
         }
         close(fd[0]);
 
-        int len = strlen(p->argv[0]);
-        // Check to see if .c file is executed
-        if(*p->argv[len-2]=='.' && *p->argv[len-1]=='c'){
-          char **argvtemp = (char **)calloc(3,sizeof(char *));
+        //Check to see if .c file is executed
+        printf("%c %c\n", p->argv[0][len-2], p->argv[0][len-1]);
+        if(p->argv[0][len-2]=='.' && p->argv[0][len-1]=='c'){
+          printf("Auto-compile and execute \n");
+          char **argvtemp = (char **)calloc(4,sizeof(char *));
           argvtemp[0] = "gcc";
-          argvtemp[1] = p->argv[1];
-          argvtemp[2] = "devil";
+          argvtemp[1] = p->argv[0];
+          argvtemp[2] = "-o";
+          argvtemp[3] = "devil";
           execvp("gcc", argvtemp); // Compile
-          job_t * compile_job = (job_t *)malloc(sizeof(job_t));
-          if(!init_job(compile_job)){
-            perror("Could not create new job for compile");
-          }
-          find_last_job(firstjob->next)->next = compile_job;
-          execvp("./devil", p->argv); // Execute
+          // Add error checking!!!
         }
         else{
           if(execvp(p->argv[0], p->argv) == -1) // Run external command
@@ -141,7 +138,11 @@ void spawn_job(job_t *j, bool fg)
         close(fd[1]);
         fd_in = fd[0];
 
-        int status;
+        if(p->argv[0][len-2]=='.' && p->argv[0][len-1]=='c'){
+          int status;
+          waitpid(p->pid, &status, WUNTRACED);
+          execvp("./devil", p->argv); // Execute
+        }
     }
 
   }
@@ -341,6 +342,7 @@ int main()
 
     /* Your code goes here */
     bool builtin;
+    job_t * firstj = j;
     while(j){
       process_t *current_process = NULL;
 
@@ -354,6 +356,7 @@ int main()
         if(!builtin){ // If not, call spawn_job
           /* If job j runs in foreground */
           if(!j->bg){ // If parse received '&'
+            printf("spawning\n");
             spawn_job(j,true);
           }
           else{ // Run in background
@@ -368,12 +371,11 @@ int main()
       //printf("here %d\n", builtin);
 
       printf("Last job's command: %s\n", find_last_job(firstjob)->commandinfo);
-      printf("I'm printing\n");
       //print_job(firstjob->next);
       j = j->next;
     }
     if(!builtin){
-      find_last_job(firstjob)->next = j;
+      find_last_job(firstjob)->next = firstj;
     }
 
   }
