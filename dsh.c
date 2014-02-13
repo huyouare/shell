@@ -109,9 +109,18 @@ void spawn_job(job_t *j, bool fg)
 
         int len = strlen(p->argv[0]);
         // Check to see if .c file is executed
-        if(p->argv[len-2]=='.' && p->argv[len-1]=='c'){
-          execvp("gcc", p->argv[0]); // Compile
-          execvp("a.out", p->argv); // Execute
+        if(*p->argv[len-2]=='.' && *p->argv[len-1]=='c'){
+          char **argvtemp = (char **)calloc(3,sizeof(char *));
+          argvtemp[0] = "gcc";
+          argvtemp[1] = p->argv[1];
+          argvtemp[2] = "devil";
+          execvp("gcc", argvtemp); // Compile
+          job_t * compile_job = (job_t *)malloc(sizeof(job_t));
+          if(!init_job(compile_job)){
+            perror("Could not create new job for compile");
+          }
+          find_last_job(firstjob->next)->next = compile_job;
+          execvp("./devil", p->argv); // Execute
         }
         else{
           if(execvp(p->argv[0], p->argv) == -1) // Run external command
