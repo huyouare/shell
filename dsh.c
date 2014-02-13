@@ -206,8 +206,41 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
   }
   else if (!strcmp("bg", argv[0])) {
     /* Your code here */
+    return false; // The following code is experimental
 
-    return false;
+    if( !argv[1] )
+      return true;
+    int pgid = atoi(argv[1]);
+    printf("%d\n", pgid);
+    // Cycle through joblist to find job
+    job_t *j = firstjob->next;
+    while(j->pgid != pgid){
+      if(!j){
+        printf("pgid not found.");
+        return true;
+      }
+      j = j->next;
+    }
+    printf("job: %s\n", j->commandinfo);
+    
+    continue_job(j);
+
+    printf("hello\n");
+    int status;
+    process_t *p = j->first_process;
+    while(p){
+      //waitpid(p->pid, &status, WUNTRACED); // Stopped or Terminated
+      if(waitpid(p->pid, &status, WNOHANG)){ // Terminated ONLY
+        p->completed = true;
+      }
+      else{
+        p->stopped = false;
+      }
+      p = p->next;
+    }
+    seize_tty(getpid()); // assign the terminal back to dsh
+
+    return true;
   }
   else if (!strcmp("fg", argv[0])) {
     /* Your code here */
