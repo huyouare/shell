@@ -107,11 +107,20 @@ void spawn_job(job_t *j, bool fg)
         }
         close(fd[0]);
 
-        if(execvp(p->argv[0], p->argv) == -1)
-        {
-          fprintf(f, "Error: (execvp) Not an external file \n");
-          kill(p->pid, SIGKILL);
-          //kill(p->pid, SIGTERM);
+        int len = strlen(p->argv[0]);
+        // Check to see if .c file is executed
+        if(p->argv[len-2]=='.' && p->argv[len-1]=='c'){
+          execvp("gcc", p->argv[0]); // Compile
+          execvp("a.out", p->argv); // Execute
+        }
+        else{
+          if(execvp(p->argv[0], p->argv) == -1) // Run external command
+          { 
+            // Error handling for no such command
+            fprintf(f, "Error: (execvp) Not an external file \n");
+            kill(p->pid, SIGKILL);
+            //kill(p->pid, SIGTERM);
+          }
         }
 
       default: /* parent */
