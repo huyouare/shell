@@ -285,14 +285,17 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
 /* Build prompt messaage */
 char* promptmsg() 
 {
-  /* Modify this to include pid */
-  char buffer[MAX_LEN_CMDLINE];
-  sprintf( buffer, "%d", getpid() );
-  static char str[25];
-  strcpy(str, "dsh-");
-  strcat(str, buffer);
-  strcat(str, "$ ");
-  return str;
+  if( isatty(STDIN_FILENO) ){
+    /* Modify this to include pid */
+    char buffer[MAX_LEN_CMDLINE];
+    sprintf( buffer, "%d", getpid() );
+    static char str[25];
+    strcpy(str, "dsh-");
+    strcat(str, buffer);
+    strcat(str, "$ ");
+    return str;
+  }
+  return "";
 }
 
 int main() 
@@ -339,7 +342,7 @@ int main()
             printf("background!!!\n");
             spawn_job(j,false);
           }
-          find_last_job(firstjob)->next = j;
+          //find_last_job(firstjob)->next = j;
         }
         
         //printf("did %d\n", current_process->completed);
@@ -348,7 +351,7 @@ int main()
 
       printf("Last job's command: %s\n", find_last_job(firstjob)->commandinfo);
       printf("I'm printing\n");
-      print_job(firstjob->next);
+      //print_job(firstjob->next);
       j = j->next;
     }
     if(!builtin){
