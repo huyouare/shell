@@ -70,10 +70,9 @@ void spawn_job(job_t *j, bool fg)
     switch (pid = fork()) {
 
       case -1: /* fork failure */
-        p->stopped = true;
-        p->completed = true;
+        // p->stopped = true;
+        // p->completed = true;
         perror("Error: fork failed \n");
-        fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
         exit(EXIT_FAILURE);
 
       case 0: /* child process  */
@@ -91,25 +90,19 @@ void spawn_job(job_t *j, bool fg)
         
         if(p->ifile){ //Check and handle input
           int i;
-          int dupstdin;
           if( (i = open(p->ifile, O_RDONLY)) < 0 ){ 
             perror("Error: couldn't open ifile file");
-            fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
             fflush(f);
           }
-          dupstdin= dup2(i, 0); //Close and redirect Stdin
-          close(dupstdin);
+          dup2(i, 0); //Close and redirect Stdin
         }
         if(p->ofile){ //Check and handle output
           int o;
-          int dupstdout;
           if( (o = open(p->ofile, O_CREAT|O_TRUNC|O_WRONLY, 0644)) < 0 ){
             perror("Error: couldn't open ofile file");
-            fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
             fflush(f);
           }
-          dupstdout=dup2(o, 1); //Close and redirect Stdout
-          close(dupstdout);
+          dup2(o, 1); //Close and redirect Stdout
         }
 
         dup2(fd_in, 0); //set std in
@@ -129,26 +122,19 @@ void spawn_job(job_t *j, bool fg)
           int status;
           switch (pid=fork()){
             case -1:
-              // p->stopped = true;
-              // p->completed = true;
               perror("Error: fork failed");
-              fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
               fflush(f);
               exit(EXIT_FAILURE);
             case 0:
               execvp("gcc", argvtemp); // Compile
               perror("Error: could not compile .c file");
-              fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
               fflush(f);
             default:
               waitpid(pid, &status, WUNTRACED);
           }
 
           if( execvp("./devil", p->argv) == -1 ){ // Execute executable and error check
-            // p->stopped = true;
-            // p->completed = true;
-            perror("Error: could not execute file");
-            fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+            perror("execvp (could not execute file)");
             fflush(f);
             kill(p->pid, SIGTERM);
           }
@@ -158,11 +144,7 @@ void spawn_job(job_t *j, bool fg)
           if(execvp(p->argv[0], p->argv) == -1) // Run external command
           { 
             // Error handling for no such command
-            // p->stopped = true;
-            // p->completed = true;
-
-            perror("Error: (execvp) is not an external file");  
-            fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+            perror("execvp");  
             fflush(f);
             kill(p->pid, SIGTERM);
           }
@@ -182,23 +164,20 @@ void spawn_job(job_t *j, bool fg)
   /* YOUR CODE HERE?  Parent-side code for new job.*/
   for(p = j->first_process; p; p = p->next) { // Wait on all processes
     int status;
-    printf("%d\n", p->pid);
     if(fg){
-      if(p->completed)
-        continue;
-      printf("fg\n");
       waitpid(p->pid, &status, WUNTRACED); // Tells if Stopped or Terminated, BLOCKING
       p->stopped = true;
     }
-    printf("done\n");
     if(waitpid(p->pid, &status, WNOHANG)){ // Tells if Terminated ONLY, NONBLOCKING
       p->stopped = true;
       p->completed = true;
+      fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
+    }
+    else{
+      fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
     }
   }
-  fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
-
-  printf("seizing\n");
+ 
   seize_tty(getpid()); // assign the terminal back to dsh
 }
 
@@ -207,7 +186,6 @@ void continue_job(job_t *j)
 {
   if(kill(-j->pgid, SIGCONT) < 0){
     perror("Error: kill(SIGCONT) failed");
-    fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
     fflush(f);
   }
   else{
@@ -244,6 +222,7 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
         delete_job(j, firstjob); // Remove from job list and free job
         fflush(f);
       }
+      // LOOP THROUGH DO WAITPID
       else if(job_is_stopped(j)){
         printf("%d(Stopped): %s\n", j->pgid, j->commandinfo);
       }
@@ -261,10 +240,10 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
   }
   else if (!strcmp("bg", argv[0])) {
     /* Your code here */
-    return false; // The following code is experimental
-    if( !argv[1] )
+    //return false; // The following code is experimental
+    if( !argv[1] ) // Exit if no second arg
       return true;
-    int pgid = atoi(argv[1]);
+    int pgid = atoi(argv[1]); // Convert to int
 
     // Cycle through joblist to find job
     job_t *j = firstjob->next;
@@ -276,8 +255,9 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
       j = j->next;
     }
     
-    continue_job(j);
+    continue_job(j); // Start the job found
 
+    // When returning, mark as completed or stopped
     int status;
     process_t *p = j->first_process;
     while(p){
@@ -359,11 +339,10 @@ int main()
   f = fopen("dsh.log", "wb"); // Open log for writing
   if (f == NULL)
   {
-      printf("Error opening file!\n");
+      fprintf(f, "Error opening file!\n");
       exit(1);
   }
   dup2(fileno(f), 2); // Dup all stderr to dsh.log
-  close(fileno(f));
 
   while(1) {
     job_t *j = NULL;
@@ -398,22 +377,17 @@ int main()
           else{ // Run in background
             spawn_job(j,false);
           }
-          //find_last_job(firstjob)->next = j;
         }
-        
-        //printf("did %d\n", current_process->completed);
       }
-      //printf("here %d\n", builtin);
-
-      //print_job(firstjob->next);
       j = j->next;
     }
-    if(!builtin){
-      find_last_job(firstjob)->next = firstj;
+    if(!builtin){ // Don't add builtins to job list
+      find_last_job(firstjob)->next = firstj; // Add job(s) to job list
     }
 
     fflush(f);
 
   }
   fclose(f);
+  close(fileno(f));
 }
