@@ -74,7 +74,6 @@ void spawn_job(job_t *j, bool fg)
         p->completed = true;
         perror("Error: fork failed \n");
         exit(EXIT_FAILURE);
-        break;
 
       case 0: /* child process  */
         p->pid = getpid();      
@@ -84,6 +83,7 @@ void spawn_job(job_t *j, bool fg)
         if(p == j->first_process){
           printf("%d(Launched): %s\n", j->pgid, j->commandinfo);
           fprintf(f, "%d(Launched): %s\n", j->pgid, j->commandinfo);
+          fflush(f);
         }
 
         fflush(stdout);
@@ -154,7 +154,6 @@ void spawn_job(job_t *j, bool fg)
             kill(p->pid, SIGTERM);
           }
         }
-        break;
 
       default: /* parent */
         /* establish child process group */
@@ -168,31 +167,23 @@ void spawn_job(job_t *j, bool fg)
     }
   }
   /* YOUR CODE HERE?  Parent-side code for new job.*/
-  int status;
-  waitpid(j->first_process->pid, &status, WUNTRACED);
-
   for(p = j->first_process; p; p = p->next) { // Wait on all processes
-    //int status;
-    // printf("in the for %d\n", p->completed);
-    // if(p->completed){
-    //   printf("in the if %d\n", p->pid);
-    //   printf("i completed\n");
-    //   continue;
-    // }
-    // printf("i did not complete\n");
+    int status;
     printf("%d\n", p->pid);
     if(fg){
-      printf("completed2: %d\n", p->completed);
       if(p->completed)
         continue;
+      printf("fg\n");
       waitpid(p->pid, &status, WUNTRACED); // Tells if Stopped or Terminated, BLOCKING
       p->stopped = true;
     }
+    printf("done\n");
     if(waitpid(p->pid, &status, WNOHANG)){ // Tells if Terminated ONLY, NONBLOCKING
       p->stopped = true;
       p->completed = true;
     }
   }
+  printf("seizing\n");
   seize_tty(getpid()); // assign the terminal back to dsh
 }
 
@@ -235,14 +226,15 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
         printf("%d(Completed): %s\n", j->pgid, j->commandinfo);
         fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
         delete_job(j, firstjob); // Remove from job list and free job
+        fflush(f);
       }
       else if(job_is_stopped(j)){
         printf("%d(Stopped): %s\n", j->pgid, j->commandinfo);
-        fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+        //fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
       }
       else{ // Otherwise running
         printf("%d(Running): %s\n", j->pgid, j->commandinfo);
-        fprintf(f, "%d(Running): %s\n", j->pgid, j->commandinfo);
+        //fprintf(f, "%d(Running): %s\n", j->pgid, j->commandinfo);
       }
       j = next;
     }
@@ -358,7 +350,6 @@ int main()
   }
   //dup2(fileno(f), 2); // Dup all stderr to dsh.log
   //close(fileno(f));
-  fprintf(f, "yooo\n");
 
   while(1) {
     job_t *j = NULL;
@@ -407,7 +398,8 @@ int main()
       find_last_job(firstjob)->next = firstj;
     }
 
+    fflush(f);
 
-    fclose(f);
   }
+  fclose(f);
 }
