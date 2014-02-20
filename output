@@ -1,18 +1,21 @@
-l s
 Makefile
 README
 README.CONTENTS
 batchFile
+cat.c
 cmds
 devil
 dsh
 dsh-example
+dsh-old
+dsh-old.c
 dsh.c
 dsh.dSYM
 dsh.h
 dsh.log
 fork-examples
 hello.c
+hello.txt
 helper.c
 infinite-loop.txt
 input.txt

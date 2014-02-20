@@ -167,15 +167,26 @@ void spawn_job(job_t *j, bool fg)
     if(fg){
       waitpid(p->pid, &status, WUNTRACED); // Tells if Stopped or Terminated, BLOCKING
       p->stopped = true;
-    }
-    if(waitpid(p->pid, &status, WNOHANG)){ // Tells if Terminated ONLY, NONBLOCKING
-      p->stopped = true;
-      p->completed = true;
-      fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
+      if(waitpid(p->pid, &status, WNOHANG)){ // Tells if Terminated ONLY, NONBLOCKING
+        p->stopped = true;
+        p->completed = true;
+        fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
+      }
+      else{
+        fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+      }
     }
     else{
-      fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+      if(waitpid(p->pid, &status, WNOHANG)){ // Tells if Terminated ONLY, NONBLOCKING
+        p->stopped = true;
+        p->completed = true;
+        fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
+      }
+      //usleep((useconds_t) 100); // Edit to how lines are printed
+
+      //NOTE: bg's output is like dsh-examples: it puts out output after the shell prompt
     }
+
   }
  
   seize_tty(getpid()); // assign the terminal back to dsh
@@ -216,6 +227,19 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
     job_t *j = firstjob->next;
     while(j){
       job_t *next = j->next;
+
+      // BACKGROUND JOBS
+      process_t *p;
+      for(p = j->first_process; p; p = p->next) { // Wait on all processes
+        int status;
+        if(waitpid(p->pid, &status, WNOHANG)){ // Tells if Terminated ONLY, NONBLOCKING
+          if(!WSTOPSIG(status)){
+            p->completed = true;
+          }
+          p->stopped = true;
+        }
+      }
+
       // Check cases of completed and stopped
       if(job_is_completed(j)){
         printf("%d(Completed): %s\n", j->pgid, j->commandinfo);
@@ -229,6 +253,7 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
       else{ // Otherwise running
         printf("%d(Running): %s\n", j->pgid, j->commandinfo);
       }
+
       j = next;
     }
     return true;
@@ -254,7 +279,6 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
       }
       j = j->next;
     }
-    
     continue_job(j); // Start the job found
 
     // When returning, mark as completed or stopped
@@ -317,7 +341,7 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
 /* Build prompt messaage */
 char* promptmsg() 
 {
-  if( isatty(STDIN_FILENO) ){
+  if( isatty(STDIN_FILENO) ){ // Disable prompt if batch mode
     /* Modify this to include pid */
     char buffer[20];
     sprintf( buffer, "%d", getpid() ); // Write to string
