@@ -1,13 +1,11 @@
-26762(Launched): ls
-26762(Completed): ls
-26763(Launched): ls
-26763(Completed): ls
-26764(Launched):  ps
-26763(Completed): ls
-26764(Completed):  ps
-26765(Launched): ls | wc -l
-26765(Completed): ls | wc -l
-26765(Completed): ls | wc -l
-26767(Launched): ls | wc
-26767(Completed): ls | wc
-26767(Completed): ls | wc
+26822(Launched): sleep 20
+26822(Stopped): sleep 20
+26855(Launched): sleep 10
+26855(Stopped): sleep 10
+27163(Launched): sleep 10 | sleep 100 | sleep 5
+27163(Stopped): sleep 10 | sleep 100 | sleep 5
+27163(Stopped): sleep 10 | sleep 100 | sleep 5
+27163(Stopped): sleep 10 | sleep 100 | sleep 5
+27178(Launched): git status
+27178(Completed): git status
+27184(Launched): git commit -am "Testing"

@@ -1,2 +1,50 @@
-sleep 10; echo hello; sleep 10
-jobs
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
+sleep 3
+echo "yay" > output.txt
