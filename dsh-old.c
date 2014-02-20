@@ -334,7 +334,7 @@ int main()
   DEBUG("Successfully initialized\n");
 
   firstjob = (job_t *)malloc(sizeof(job_t));
-  f = fopen("dsh.log", "w");
+  f = fopen("dsh.log", "wb");
 
   while(1) {
     job_t *j = NULL;
