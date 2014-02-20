@@ -1,16 +1,15 @@
-26822(Launched): sleep 20
-26822(Stopped): sleep 20
-26855(Launched): sleep 10
-26855(Stopped): sleep 10
-27163(Launched): sleep 10 | sleep 100 | sleep 5
-27163(Stopped): sleep 10 | sleep 100 | sleep 5
-27163(Stopped): sleep 10 | sleep 100 | sleep 5
-27163(Stopped): sleep 10 | sleep 100 | sleep 5
-27178(Launched): git status
-27178(Completed): git status
-27184(Launched): git commit -am "Testing"
-27184(Completed): git commit -am "Testing"
-27185(Launched): git push
-To https://github.com/huyouare/devil-shell.git
-   9f318f9..c944cc0  master -> master
-27185(Completed): git push
+28926(Launched): less input
+28926(Stopped): less input
+28928(Launched): more input
+28928(Completed): more input
+28929(Launched): emacs
+28929(Stopped): emacs
+28930(Launched): cat
+28930(Stopped): cat
+cat: stdin: Interrupted system call
+28931(Launched): sdf
+execvp: No such file or directory
+28931(Completed): sdf
+28932(Launched): sdf
+execvp: No such file or directory
+28932(Completed): sdf

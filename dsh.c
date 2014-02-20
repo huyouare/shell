@@ -232,7 +232,7 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
       process_t *p;
       for(p = j->first_process; p; p = p->next) { // Wait on all processes
         int status;
-        if(waitpid(p->pid, &status, WNOHANG)){ // Tells if Terminated ONLY, NONBLOCKING
+        if(waitpid(p->pid, &status, WNOHANG | WUNTRACED)){ // Tells if Terminated or Stopped
           if(!WSTOPSIG(status)){
             p->completed = true;
           }
@@ -279,6 +279,7 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
       }
       j = j->next;
     }
+
     continue_job(j); // Start the job found
 
     // When returning, mark as completed or stopped
@@ -311,18 +312,20 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
     job_t *j = firstjob->next;
     while(j->pgid != pgid){
       if(!j){
-        perror("Error: pgid not found \n");
+        perror("Error: pgid not found");
         return true;
       }
       j = j->next;
     }
-
+    if( !j || !j->pgid || job_is_completed(j) ){
+      perror("No job available to fg");
+      return true;
+    }
     continue_job(j); // Continue job!!!
-
     seize_tty(j->pgid); // Give tty to fg job
     int status;
     process_t *p = j->first_process;
-    // Wait for all processes to finish
+    //Wait for all processes to finish
     while(p){
       waitpid(p->pid, &status, WUNTRACED); // Stopped or Terminated
       p->stopped = true;
