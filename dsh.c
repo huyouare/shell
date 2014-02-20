@@ -87,130 +87,91 @@ void spawn_job(job_t *j, bool fg)
 
         fflush(stdout);
         
-        if(p->ifile){
+        if(p->ifile){ //Check and handle input
           int i;
-          if( (i = open(p->ifile, O_RDONLY)) < 0){
-            // p->completed=false;
+          if( (i = open(p->ifile, O_RDONLY)) < 0 ){ 
             perror("Error: couldn't open ifile file");
           }
-          dup2(i, 0);
+          dup2(i, 0); //Close and redirect Stdin
         }
-        if(p->ofile){
+        if(p->ofile){ //Check and handle output
           int o;
           if( (o = open(p->ofile, O_CREAT|O_TRUNC|O_WRONLY, 0644)) < 0 ){
-            // p->stopped=true;
-            // p->completed=false;
-            // boolean=1;
             perror("Error: couldn't open ofile file");
           }
-          dup2(o, 1);
+          dup2(o, 1); //Close and redirect Stdout
         }
 
-        dup2(fd_in, 0);
-        if(p->next){
+        dup2(fd_in, 0); //set std in
+        if(p->next){ //set output of current to input of next
           dup2(fd[1], 1);
         }
-        close(fd[0]);
+        close(fd[0]); //close input
 
-        //Check to see if .c file is executed
-       
-        // if(p->argv[0][len-2]=='.' && p->argv[0][len-1]=='c'){
-//             char **argvtemp = (char **)calloc(4,sizeof(char *));
-//             argvtemp[0] = "gcc";
-//             argvtemp[1] = p->argv[0];
-//             argvtemp[2] = "-o";
-//             argvtemp[3] = "devil";
-//             switch (pid=fork()){
-//                 case -1:
-//                     p->stopped=true;
-//                     p->completed=false;
-//                     boolean=1;
-//                     perror("Error: fork failed");
-//                     exit(EXIT_FAILURE);
-//                 case 0:
-//                     p->pid = getpid();      
-//                     new_child(j, p, fg);
-//                     execvp("gcc", argvtemp); // Compile
-//                     boolean=1;
-//                     p->stopped=true;
-//                     p->completed=false;
-//                     perror("Error: could not compile .c file");
-//                 default:
-//                     p->pid = pid;
-//                     set_child_pgid(j, p);
-//                     int status;   
-//                     waitpid(p->pid, &status, WUNTRACED);
-//              
-// 
-//             }
-            // if(p->ifile){
-//                 int i;
-//                 if( (i = open(p->ifile, O_RDONLY)) < 0){
-//                     p->stopped=true;
-//                     p->completed=false;
-//                     boolean=1;
-//                     perror("Error: couldn't open ifile file");
-//                 }
-//                 dup2(i, 0);
-//             }
-//             if(p->ofile){
-//                 int o;
-//                 if( (o = open(p->ofile, O_CREAT|O_TRUNC|O_WRONLY, 0644)) < 0 ){
-//                     p->stopped=true;
-//                     p->completed=false;
-//                     boolean=1;
-//                     perror("Error: couldn't open ofile file");
-//                 }
-//                 dup2(o, 1);
-//             }
-//             execvp("./devil", p->argv);
-//             p->stopped=true;
-//             p->completed=false;
-//             boolean=1;
-//             perror("Error: could not execute file");
-//          
-//         }
-//         
+        //Check to see if .c file
+        if(p->argv[0][len-2]=='.' && p->argv[0][len-1]=='c'){
+          char **argvtemp = (char **)calloc(4,sizeof(char *));
+          argvtemp[0] = "gcc";
+          argvtemp[1] = p->argv[0]; // Name of .c file
+          argvtemp[2] = "-o"; // Output flag
+          argvtemp[3] = "devil"; // Compile to file called devil
+          switch (pid=fork()){
+            case -1:
+              p->stopped = true;
+              p->completed = true;
+              perror("Error: fork failed");
+              exit(EXIT_FAILURE);
+            case 0:
+              p->pid = getpid();      
+              new_child(j, p, fg);
+              execvp("gcc", argvtemp); // Compile
+              perror("Error: could not compile .c file");
+            default:
+              p->pid = pid;
+              set_child_pgid(j, p);
+              int status;   
+              waitpid(p->pid, &status, WUNTRACED);
+          }
+
+          if( execvp("./devil", p->argv) == -1 ){ // Execute executable and error check
+            p->stopped=true;
+            p->completed=true;
+            perror("Error: could not execute file");
+            kill(p->pid, SIGKILL);
+          }
+        }
         
-
-        //else{
+        else{
           if(execvp(p->argv[0], p->argv) == -1) // Run external command
           { 
             // Error handling for no such command
-            // p->stopped=true;
-            // p->completed=false;
-            perror("Error: (execvp) Not an external file");
-
+            p->stopped=true;
+            p->completed=true;
+            perror("Error: (execvp) is not an external file");
             kill(p->pid, SIGKILL);
-            //kill(p->pid, SIGTERM);
           }
-        //}
+        }
 
       default: /* parent */
         /* establish child process group */
-
         p->pid = pid;
         set_child_pgid(j, p);
 
         /* YOUR CODE HERE?  Parent-side code for new process.  */
         int status;
-        // waitpid(p->pid, &status, WUNTRACED);
-
-        close(fd[1]);
-        fd_in = fd[0];
-     
+        close(fd[1]); // Close pipe output
+        fd_in = fd[0]; // Set up pipe for next process
     }
-
   }
+
   /* YOUR CODE HERE?  Parent-side code for new job.*/
-    
-  for(p = j->first_process; p; p = p->next) {
+  for(p = j->first_process; p; p = p->next) { // Wait on all processes
     int status;
     if(fg){
-      waitpid(p->pid, &status, WUNTRACED); // Stopped or Terminated
+      waitpid(p->pid, &status, WUNTRACED); // Tells if Stopped or Terminated, BLOCKING
       p->stopped = true;
     }
-    if(waitpid(p->pid, &status, WNOHANG)){ // Terminated ONLY
+    if(waitpid(p->pid, &status, WNOHANG)){ // Tells if Terminated ONLY, NONBLOCKING
       p->stopped = true;
       p->completed = true;
     }
@@ -222,14 +183,13 @@ void spawn_job(job_t *j, bool fg)
 void continue_job(job_t *j) 
 {
   if(kill(-j->pgid, SIGCONT) < 0){
-
     perror("Error: kill(SIGCONT) failed");
   }
   else{
     process_t * p = j->first_process;
-    while(p){
+    while(p){ // Iterate all processes
       if(!p->completed){
-        p->stopped = false;
+        p->stopped = false; // Mark as running
       }
       p = p->next;
     }
@@ -243,7 +203,6 @@ void continue_job(job_t *j)
  */
 bool builtin_cmd(job_t *last_job, int argc, char **argv) 
 {
-
   /* check whether the cmd is a built in command
   */
   if (!strcmp(argv[0], "quit")) {
@@ -254,16 +213,17 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
     job_t *j = firstjob->next;
     while(j){
       job_t *next = j->next;
+      // Check cases of completed and stopped
       if(job_is_completed(j)){
         printf("%d(Completed): %s\n", j->pgid, j->commandinfo);
         fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
-        delete_job(j, firstjob);
+        delete_job(j, firstjob); // Remove from job list
       }
       else if(job_is_stopped(j)){
         printf("%d(Stopped): %s\n", j->pgid, j->commandinfo);
         fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
       }
-      else{
+      else{ // Otherwise running
         printf("%d(Running): %s\n", j->pgid, j->commandinfo);
         fprintf(f, "%d(Running): %s\n", j->pgid, j->commandinfo);
       }
@@ -279,15 +239,14 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
   else if (!strcmp("bg", argv[0])) {
     /* Your code here */
     return false; // The following code is experimental
-
     if( !argv[1] )
       return true;
     int pgid = atoi(argv[1]);
+
     // Cycle through joblist to find job
     job_t *j = firstjob->next;
     while(j->pgid != pgid){
       if(!j){
-     
         perror("Error: pgid not found \n");
         return true;
       }
@@ -314,25 +273,29 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
   }
   else if (!strcmp("fg", argv[0])) {
     /* Your code here */
-    if( !argv[1] )
+
+    if( !argv[1] ){ // No second arg
+      perror("Error: No pgid given to fg");
       return true;
-    int pgid = atoi(argv[1]);
+    }
+    int pgid = atoi(argv[1]); // Convert string to integer
+
     // Cycle through joblist to find job
     job_t *j = firstjob->next;
     while(j->pgid != pgid){
       if(!j){
-       
         perror("Error: pgid not found \n");
         return true;
       }
       j = j->next;
     }
-    
-    continue_job(j);
 
-    seize_tty(j->pgid);
+    continue_job(j); // Continue job!!!
+
+    seize_tty(j->pgid); // Give tty to fg job
     int status;
     process_t *p = j->first_process;
+    // Wait for all processes to finish
     while(p){
       waitpid(p->pid, &status, WUNTRACED); // Stopped or Terminated
       p->stopped = true;
@@ -342,8 +305,6 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
       p = p->next;
     }
     seize_tty(getpid()); // assign the terminal back to dsh
-
-
     return true;
   }
 
@@ -355,9 +316,9 @@ char* promptmsg()
 {
   if( isatty(STDIN_FILENO) ){
     /* Modify this to include pid */
-    char buffer[MAX_LEN_CMDLINE];
-    sprintf( buffer, "%d", getpid() );
-    static char str[25];
+    char buffer[20];
+    sprintf( buffer, "%d", getpid() ); // Write to string
+    static char str[MAX_LEN_CMDLINE];
     strcpy(str, "dsh-");
     strcat(str, buffer);
     strcat(str, "$ ");
@@ -371,9 +332,9 @@ int main()
   init_dsh();
   DEBUG("Successfully initialized\n");
 
-  firstjob = (job_t *)malloc(sizeof(job_t));
-  f = fopen("dsh.log", "w");
-  dup2(fileno(f), 2);
+  firstjob = (job_t *)malloc(sizeof(job_t)); // Malloc head of list
+  f = fopen("dsh.log", "w"); // Open log for writing
+  dup2(fileno(f), 2); // Dup all stderr to dsh.log
   close(fileno(f));
 
   while(1) {
@@ -394,9 +355,7 @@ int main()
     bool builtin;
     job_t * firstj = j;
     while(j){
-      process_t *current_process = NULL;
-
-      current_process = j->first_process;
+      process_t *current_process = j->first_process;
       /* You need to loop through jobs list since a command line can contain ;*/
       builtin = false;
       if(current_process){
