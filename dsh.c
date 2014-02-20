@@ -73,6 +73,7 @@ void spawn_job(job_t *j, bool fg)
         p->stopped = true;
         p->completed = true;
         perror("Error: fork failed \n");
+        fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
         exit(EXIT_FAILURE);
 
       case 0: /* child process  */
@@ -93,6 +94,8 @@ void spawn_job(job_t *j, bool fg)
           int dupstdin;
           if( (i = open(p->ifile, O_RDONLY)) < 0 ){ 
             perror("Error: couldn't open ifile file");
+            fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+            fflush(f);
           }
           dupstdin= dup2(i, 0); //Close and redirect Stdin
           close(dupstdin);
@@ -102,6 +105,8 @@ void spawn_job(job_t *j, bool fg)
           int dupstdout;
           if( (o = open(p->ofile, O_CREAT|O_TRUNC|O_WRONLY, 0644)) < 0 ){
             perror("Error: couldn't open ofile file");
+            fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+            fflush(f);
           }
           dupstdout=dup2(o, 1); //Close and redirect Stdout
           close(dupstdout);
@@ -127,10 +132,14 @@ void spawn_job(job_t *j, bool fg)
               // p->stopped = true;
               // p->completed = true;
               perror("Error: fork failed");
+              fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+              fflush(f);
               exit(EXIT_FAILURE);
             case 0:
               execvp("gcc", argvtemp); // Compile
               perror("Error: could not compile .c file");
+              fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+              fflush(f);
             default:
               waitpid(pid, &status, WUNTRACED);
           }
@@ -139,6 +148,8 @@ void spawn_job(job_t *j, bool fg)
             // p->stopped = true;
             // p->completed = true;
             perror("Error: could not execute file");
+            fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+            fflush(f);
             kill(p->pid, SIGTERM);
           }
         }
@@ -151,6 +162,8 @@ void spawn_job(job_t *j, bool fg)
             // p->completed = true;
 
             perror("Error: (execvp) is not an external file");  
+            fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+            fflush(f);
             kill(p->pid, SIGTERM);
           }
         }
@@ -183,6 +196,8 @@ void spawn_job(job_t *j, bool fg)
       p->completed = true;
     }
   }
+  fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
+
   printf("seizing\n");
   seize_tty(getpid()); // assign the terminal back to dsh
 }
@@ -192,6 +207,8 @@ void continue_job(job_t *j)
 {
   if(kill(-j->pgid, SIGCONT) < 0){
     perror("Error: kill(SIGCONT) failed");
+    fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
+    fflush(f);
   }
   else{
     process_t * p = j->first_process;
@@ -224,17 +241,14 @@ bool builtin_cmd(job_t *last_job, int argc, char **argv)
       // Check cases of completed and stopped
       if(job_is_completed(j)){
         printf("%d(Completed): %s\n", j->pgid, j->commandinfo);
-        fprintf(f, "%d(Completed): %s\n", j->pgid, j->commandinfo);
         delete_job(j, firstjob); // Remove from job list and free job
         fflush(f);
       }
       else if(job_is_stopped(j)){
         printf("%d(Stopped): %s\n", j->pgid, j->commandinfo);
-        //fprintf(f, "%d(Stopped): %s\n", j->pgid, j->commandinfo);
       }
       else{ // Otherwise running
         printf("%d(Running): %s\n", j->pgid, j->commandinfo);
-        //fprintf(f, "%d(Running): %s\n", j->pgid, j->commandinfo);
       }
       j = next;
     }
@@ -348,8 +362,8 @@ int main()
       printf("Error opening file!\n");
       exit(1);
   }
-  //dup2(fileno(f), 2); // Dup all stderr to dsh.log
-  //close(fileno(f));
+  dup2(fileno(f), 2); // Dup all stderr to dsh.log
+  close(fileno(f));
 
   while(1) {
     job_t *j = NULL;
